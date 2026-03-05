@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/tobiashammer/Documents/Github/Tilde/soundsnap/src/components/providers/ConvexClientProvider.tsx"],"sourcesContent":["\"use client\";\n\nimport { ConvexProviderWithClerk } from \"convex/react-clerk\";\nimport { ConvexReactClient } from \"convex/react\";\nimport { useAuth } from \"@clerk/nextjs\";\n\nconst convex = new ConvexReactClient(\n  process.env.NEXT_PUBLIC_CONVEX_URL ?? \"https://placeholder.convex.cloud\"\n);\n\nexport function ConvexClientProvider({\n  children,\n}: {\n  children: React.ReactNode;\n}) {\n  return (\n    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>\n      {children}\n    </ConvexProviderWithClerk>\n  );\n}\n\n"],"names":[],"mappings":";;;;AAEA;AACA;AAAA;AAIE;AALF;AAEA;AAJA;;;;;AAMA,MAAM,SAAS,IAAI,2JAAA,CAAA,oBAAiB,CAClC,wFAAsC;AAGjC,SAAS,qBAAqB,EACnC,QAAQ,EAGT;IACC,qBACE,6LAAC,qLAAA,CAAA,0BAAuB;QAAC,QAAQ;QAAQ,SAAS,iLAAA,CAAA,UAAO;kBACtD;;;;;;AAGP;KAVgB"}},
+    {"offset": {"line": 40, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}}]
+}
