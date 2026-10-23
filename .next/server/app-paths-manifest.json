@@ -1,6 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/lobby/[roomCode]/page": "app/lobby/[roomCode]/page.js",
-  "/game/[roomCode]/page": "app/game/[roomCode]/page.js",
-  "/_not-found/page": "app/_not-found/page.js"
-}
