@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen antialiased">
-        <ClerkProvider>
+        <ClerkProvider afterSignOutUrl="/">
           <ConvexClientProvider>
             <header className="border-b border-zinc-800 px-4 py-3 flex justify-end gap-2">
               <Show when="signed-out">
@@ -38,7 +38,7 @@ export default function RootLayout({
                 </SignUpButton>
               </Show>
               <Show when="signed-in">
-                <UserButton afterSignOutUrl="/" />
+                <UserButton />
               </Show>
             </header>
             {children}

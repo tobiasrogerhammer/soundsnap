@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
 import Link from "next/link";
 import { LobbySettings } from "@/components/lobby/LobbySettings";
 import { PlayerList } from "@/components/lobby/PlayerList";
@@ -15,12 +14,6 @@ export default function LobbyPage() {
   const router = useRouter();
   const roomCode = params.roomCode as string;
   const room = useQuery(api.rooms.get, { roomCode });
-  const roomData = room as {
-    _id: string;
-    status: string;
-    hostId: string;
-    gameSettings: { gameMode: string; maxPoints: number; selectedGenres: string[]; modifiers?: Record<string, unknown> };
-  } | null;
   const leaveMutation = useMutation(api.rooms.leave);
   const joinMutation = useMutation(api.rooms.join);
   const setReadyMutation = useMutation(api.rooms.setReady);
@@ -31,18 +24,18 @@ export default function LobbyPage() {
 
   const players = useQuery(
     api.roomPlayers.listByRoom,
-    roomData?._id ? { roomId: roomData._id } : "skip"
+    room?._id ? { roomId: room._id } : "skip"
   );
   const me = useQuery(api.users.getMe, {});
 
-  const isHost = roomData && me && roomData.hostId === (me as { _id: string })._id;
-  const amInRoom = !!players?.some((p) => (p as { userId: string }).userId === (me as { _id: string })?._id);
+  const isHost = !!room && !!me && room.hostId === me._id;
+  const amInRoom = !!players?.some((p) => p.userId === me?._id);
 
   useEffect(() => {
-    if (roomData?.status === "playing") {
+    if (room?.status === "playing") {
       router.replace(`/game/${roomCode}`);
     }
-  }, [roomData?.status, roomCode, router]);
+  }, [room?.status, roomCode, router]);
 
   async function handleJoin() {
     if (!roomCode) return;
@@ -58,9 +51,9 @@ export default function LobbyPage() {
   }
 
   async function handleLeave() {
-    if (!roomData?._id) return;
+    if (!room?._id) return;
     try {
-      await leaveMutation({ roomId: roomData._id });
+      await leaveMutation({ roomId: room._id });
       router.push("/");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to leave");
@@ -68,19 +61,19 @@ export default function LobbyPage() {
   }
 
   async function handleSetReady(ready: boolean) {
-    if (!roomData?._id) return;
+    if (!room?._id) return;
     try {
-      await setReadyMutation({ roomId: roomData._id, ready });
+      await setReadyMutation({ roomId: room._id, ready });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to set ready");
     }
   }
 
   async function handleStartGame() {
-    if (!roomData?._id) return;
+    if (!room?._id) return;
     setError(null);
     try {
-      await startGameMutation({ roomId: roomData._id });
+      await startGameMutation({ roomId: room._id });
       router.push(`/game/${roomCode}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start game");
@@ -95,7 +88,7 @@ export default function LobbyPage() {
     );
   }
 
-  if (roomData === null) {
+  if (room === null) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-4">
         <p className="text-zinc-400">Room not found.</p>
@@ -125,9 +118,8 @@ export default function LobbyPage() {
     );
   }
 
-  const canStart = roomData?.status === "lobby" && players && players.length >= 2;
-  type PlayerItem = { userId: string; name: string; ready: boolean };
-  const myPlayer = players?.find((p) => (p as PlayerItem).userId === (me as { _id: string })?._id) as PlayerItem | undefined;
+  const canStart = room.status === "lobby" && players && players.length >= 2;
+  const myPlayer = players?.find((p) => p.userId === me?._id);
 
   return (
     <main className="min-h-screen p-6 max-w-lg mx-auto">
@@ -145,8 +137,8 @@ export default function LobbyPage() {
       )}
 
       <PlayerList
-        players={(players ?? []) as { _id: string; name: string; ready: boolean; score: number }[]}
-        currentUserName={(me as { name?: string })?.name ?? "Player"}
+        players={players ?? []}
+        currentUserName={me?.name ?? "Player"}
       />
 
       <div className="mt-6 flex flex-col gap-4">
@@ -161,14 +153,12 @@ export default function LobbyPage() {
         </div>
 
         {isHost && (
-          <>
-            <LobbySettings
-              roomId={roomData._id as Id<"rooms">}
-              gameSettings={roomData.gameSettings as { gameMode: "solo" | "teams"; maxPoints: number; selectedGenres: string[]; modifiers?: { doublePointsRounds?: boolean; losePointsRounds?: boolean; hintEnabled?: boolean } }}
-              onStartGame={handleStartGame}
-              canStart={!!canStart}
-            />
-          </>
+          <LobbySettings
+            roomId={room._id}
+            gameSettings={room.gameSettings}
+            onStartGame={handleStartGame}
+            canStart={!!canStart}
+          />
         )}
 
         <button

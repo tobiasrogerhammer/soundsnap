@@ -3,57 +3,37 @@
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SpinWheel } from "@/components/game/SpinWheel";
 import { Scoreboard } from "@/components/shared/Scoreboard";
-import { RoundDisplay, type Round } from "@/components/game/RoundDisplay";
+import { RoundDisplay } from "@/components/game/RoundDisplay";
 
 export default function GamePage() {
   const params = useParams();
   const router = useRouter();
   const roomCode = params.roomCode as string;
   const room = useQuery(api.rooms.get, { roomCode });
-  const roomData = room as {
-    _id: string;
-    status: string;
-    spinResultPlayerId?: string;
-    currentRoundIndex: number;
-    hostId: string;
-  } | null;
   const players = useQuery(
     api.roomPlayers.listByRoom,
-    roomData?._id ? { roomId: roomData._id } : "skip"
+    room?._id ? { roomId: room._id } : "skip"
   );
   const round = useQuery(
     api.rounds.getCurrentRound,
-    roomData?._id ? { roomId: roomData._id } : "skip"
+    room?._id ? { roomId: room._id } : "skip"
   );
-  const roundData = round as {
-    roundIndex: number;
-    phase: string;
-    _id: string;
-    songId: string;
-    previewStartTimeSec: number;
-    questionType: string;
-    correctAnswer: unknown;
-    phaseEndsAt?: number;
-    startedAt: number;
-    roomId: string;
-  } | null | undefined;
   const me = useQuery(api.users.getMe, {});
   const [wheelDone, setWheelDone] = useState(false);
 
-  const isHost = roomData && me && roomData.hostId === (me as { _id: string })._id;
+  const isHost = !!room && !!me && room.hostId === me._id;
 
   useEffect(() => {
-    if (roomData?.status === "finished") {
+    if (room?.status === "finished") {
       router.replace("/");
     }
-  }, [roomData?.status, router]);
+  }, [room?.status, router]);
 
-  if (room === undefined || roomData === null) {
+  if (room === undefined) {
     return (
       <main className="min-h-screen flex items-center justify-center p-6">
         <p className="text-zinc-500">Loading…</p>
@@ -61,7 +41,15 @@ export default function GamePage() {
     );
   }
 
-  if (roomData?.status === "lobby") {
+  if (room === null) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6">
+        <p className="text-zinc-500">Room not found.</p>
+      </main>
+    );
+  }
+
+  if (room.status === "lobby") {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-4">
         <p className="text-zinc-400">Game has not started. Waiting in lobby.</p>
@@ -73,10 +61,10 @@ export default function GamePage() {
   }
 
   const showWheel =
-    roomData?.status === "playing" &&
-    roomData?.spinResultPlayerId &&
-    roundData?.roundIndex === 0 &&
-    roundData?.phase === "preview" &&
+    room.status === "playing" &&
+    !!room.spinResultPlayerId &&
+    round?.roundIndex === 0 &&
+    round?.phase === "preview" &&
     !wheelDone;
 
   return (
@@ -86,7 +74,7 @@ export default function GamePage() {
           <span className="text-zinc-500 font-mono">{roomCode}</span>
           <span className="text-zinc-600">|</span>
           <span className="text-sm text-zinc-400">
-            Round {(roomData?.currentRoundIndex ?? 0) + 1}
+            Round {room.currentRoundIndex + 1}
           </span>
         </div>
         <Link href="/" className="text-zinc-500 text-sm hover:underline">
@@ -95,25 +83,25 @@ export default function GamePage() {
       </div>
 
       <Scoreboard
-        players={(players ?? []) as { _id: string; name: string; score: number; userId?: string }[]}
-        spinResultPlayerId={roomData?.spinResultPlayerId}
+        players={players ?? []}
+        spinResultPlayerId={room.spinResultPlayerId}
       />
 
       <div className="flex-1 flex flex-col items-center justify-center py-8">
-        {showWheel && players && roomData?.spinResultPlayerId && (
+        {showWheel && players && room.spinResultPlayerId && (
           <SpinWheel
-            players={players as { userId: string; name: string }[]}
-            resultPlayerId={roomData.spinResultPlayerId}
+            players={players}
+            resultPlayerId={room.spinResultPlayerId}
             onComplete={() => setWheelDone(true)}
           />
         )}
-        {!showWheel && roomData?._id && (
+        {!showWheel && (
           <RoundDisplay
-            roomId={roomData._id as Id<"rooms">}
+            roomId={room._id}
             roomCode={roomCode}
-            round={roundData as unknown as Round | null | undefined}
-            players={(players ?? []) as { _id: string; name: string; userId?: string }[]}
-            isHost={!!isHost}
+            round={round}
+            players={players ?? []}
+            isHost={isHost}
           />
         )}
       </div>
